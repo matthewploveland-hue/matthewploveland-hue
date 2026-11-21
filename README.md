@@ -9,7 +9,7 @@ I have completed several projects using Python, C#, MySQL, Pandas, R, HTML and C
 - **Data & Databases:** pandas, scikit-learn, MySQL, SQLite
 - **Tools:** Git/GitHub, Quarto, Visual Studio
 
-### Reflection App((https://github.com/matthewploveland-hue/matthewploveland-hue/blob/main/Reflection/unit5_tasks.qmd))
+### Reflection App([app_folder](https://github.com/matthewploveland-hue/matthewploveland-hue/blob/main/Reflection%20App))
 This app allows the user to pause and choose an activity of reflection, gratitude or breathing.
 - **Tools:** C#
 - **What I practiced:** Inheritance, Encapsulation, Abstraction
