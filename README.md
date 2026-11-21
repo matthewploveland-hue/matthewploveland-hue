@@ -9,7 +9,7 @@ I have completed several projects using Python, C#, MySQL, Pandas, R, HTML and C
 - **Data & Databases:** pandas, scikit-learn, MySQL, SQLite
 - **Tools:** Git/GitHub, Quarto, Visual Studio
 
-### Reflection App(link-to-repo)
+### Reflection App((https://github.com/matthewploveland-hue/matthewploveland-hue/blob/main/Reflection/unit5_tasks.qmd))
 This app allows the user to pause and choose an activity of reflection, gratitude or breathing.
 - **Tools:** C#
 - **What I practiced:** Inheritance, Encapsulation, Abstraction
@@ -18,8 +18,8 @@ This app allows the user to pause and choose an activity of reflection, gratitud
 Predicted respondents income based off of general opinions of Star Wars.
 - **Tools:** Python, pandas, scikit-learn, lets-plot, Quarto
 - **Result:** Predicted with over 70% accuracy
-- [View the report](https://github.com/matthewploveland-hue/matthewploveland-hue/blob/main/Machine%20Learning%20Project/unit5_tasks.html)
+- [View the report](https://matthewploveland-hue.github.io/matthewploveland-hue/Machine%20Learning%20Project/unit5_tasks.html)
 
 ## Contact
 Email: mploveland@outlook.com
-www.linkedin.com/in/matthew-loveland-4aa5512a5
+LinkedIn: www.linkedin.com/in/matthew-loveland-4aa5512a5
