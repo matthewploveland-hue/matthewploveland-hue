@@ -1,0 +1,354 @@
+---
+title: "Client Report - Star Wars for Dummies"
+subtitle: "Unit 5 Tasks 1-3 [no stretch]"
+author: "Matthew Loveland"
+format:
+    html:
+        embed-resources: true
+        page-layout: full
+        title-block-banner: true
+        toc: true
+        toc-depth: 3
+        toc-location: body
+        number-sections: false
+        html-math-method: katex
+        code-fold: true
+        code-summary: "Show the code"
+        code-overflow: wrap
+        code-copy: hover
+        code-tools:
+            source: false
+            toggle: true
+            caption: See code
+execute:
+    warning: false
+---
+
+```{python}
+#| include: false
+import pandas as pd
+import numpy as np
+from lets_plot import *
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.metrics import classification_report, confusion_matrix
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+## Executive Summary
+
+- The goal of this analysis is to predict income level based on several general demographics, but also based on opinions of the Star Wars franchise
+- This data comes from a survey with 835 respondents
+- The data from this survey shows people have most seen the fifth star wars movie, Empire Strikes Back.
+- The ML model found that the most important feature from the survey involving Star Wars was whether or not people liked Jar Jar Binks.
+- The most important feature for prediction over all was whether or not someone entered in their income information.
+- The accuracy of the model was over 70%. 
+- The ML model's limitation was guessing when the person made below 50k. It was most accurate when guessing when a person made over 50k.
+
+
+## Methods
+
+_When preparing this data, a few steps needed to be completed. First, for ease of coding, every single column needed to be renamed. These were shorter and simpler. Next, out of the many entries, it needed to be filtered to 835 respondents that acually reported to have seen a single movie. This filtered dataframe was then used for the rest of the file. I then made two visuals copying the FiveThirtyEight charts, which took some math and data simplification. This was done at the very end, so the columns used were accidentally simplified twice, which improved the ML accuracy by about two percent once fixed._
+
+_Then, the education, income, age, and character favoribility charts needed simplification from string form to single integer form. This was so the ML model was able to process the data properly. The y target was taken from the income column; if the person's income was below 50k, then the cell = 0, but if it's above 50k, then the cell = 1. This is what the ML model seeks after._
+
+The code below shows the y column being created for the ML model to use.
+
+```{python}
+#| eval: false
+filtered_df['y'] = filtered_df['income']
+filtered_df['y'] = filtered_df['y'].replace({
+    12500: 0,
+    37500: 0,
+    75000: 1,
+    125000: 1,
+    175000: 1
+}).astype(int)
+```
+
+### Data import
+
+```{python}
+star_wars_ml = pd.read_csv(
+    'https://github.com/fivethirtyeight/data/raw/master/star-wars-survey/StarWars.csv',
+    encoding_errors="ignore",
+    skiprows=1
+)
+star_wars_ml.head()
+```
+
+## QUESTION 1
+Shorten the column names and clean them up for easier use with pandas. Provide a table or list that exemplifies how you fixed the names.
+
+```{python}
+# Adjust column names to something shorter
+new_col_names = ['respondent_id', 'seen_any', 'starwars_fan?', 'starwars1?', 'starwars2?', 'starwars3?', 'starwars4?', 'starwars5?', 'starwars6?', 'rank_starwars1', 'rank_starwars2', 'rank_starwars3', 'rank_starwars4', 'rank_starwars5', 'rank_starwars6', 'han_solo', 'luke_sky', 'prin_leia', 'ana_sky', 'obi_wan', 'emp_palp', 'darth_vad', 'lando_cal', 'boba_fett', 'c3po', 'r2d2', 'jarjar', 'padme', 'yoda', 'shot_first', 'famil_expan_uni?', 'expan_uni_fan?', 'starwars_fan?2', 'gender', 'age', 'income', 'education', 'location']
+
+star_wars_ml.columns = new_col_names
+star_wars_ml.head()
+```
+
+## QUESTION 2
+Filter the dataset to 835 respondents that have seen at least one film (Hint: Don’t use the column Have you seen any of the 6 films in the Star Wars franchise?)
+
+```{python}
+movie_cols = ['starwars1?', 'starwars2?', 'starwars3?', 'starwars4?', 'starwars5?', 'starwars6?']
+have_seen = star_wars_ml[movie_cols].apply(lambda x: x.notnull()).any(axis=1)
+
+filtered_df = star_wars_ml[have_seen].copy()
+
+filtered_df.shape
+```
+
+## QUESTION 3
+Validate that the data provided on GitHub lines up with the article by recreating 2 of the visuals from the article. These visuals should be similar, including titles, subtitles, gridlines, order of categories, colors, etc. But, they don’t have to be exact. They need to be close enough that we can validate that the values in the dataset match the graphs in the chart. Though their charts were built using a different plotting software, the more you push yourself for an exact replica, the more you will learn. Spend at least a couple of hours on this.
+
+```{python}
+# Full movie titles as they appear in the survey, mapped to the short names used in the chart
+movie_titles = {
+    'starwars1?': 'Star Wars: Episode I  The Phantom Menace',
+    'starwars2?': 'Star Wars: Episode II  Attack of the Clones',
+    'starwars3?': 'Star Wars: Episode III  Revenge of the Sith',
+    'starwars4?': 'Star Wars: Episode IV  A New Hope',
+    'starwars5?': 'Star Wars: Episode V The Empire Strikes Back',
+    'starwars6?': 'Star Wars: Episode VI Return of the Jedi',
+}
+
+# Convert each movie column to 1 (seen) / 0 (not seen)
+for col, title in movie_titles.items():
+    filtered_df[col] = filtered_df[col].fillna(0)
+    filtered_df[col] = filtered_df[col].replace(title, 1)
+
+# Chart order: Episode VI at the top down to Episode I
+chart_labels = {
+    'starwars6?': 'Return of the Jedi',
+    'starwars5?': 'Empire Strikes Back',
+    'starwars4?': 'A New Hope',
+    'starwars3?': 'Revenge of the Sith',
+    'starwars2?': 'Attack of the Clones',
+    'starwars1?': 'The Phantom Menace',
+}
+
+percentages = {
+    label: ((filtered_df[col].sum() / filtered_df[col].count()) * 100).round()
+    for col, label in chart_labels.items()
+}
+
+df_percentages = pd.DataFrame(list(percentages.items()), columns=['movie', 'percent'])
+
+
+# "Who shot first?" -- Greedo = 0, Han = 1, unsure = NaN
+filtered_df['shot_first'] = filtered_df['shot_first'].replace("I don't understand this question", np.nan)
+filtered_df['shot_first'] = filtered_df['shot_first'].replace("Greedo", 0)
+filtered_df['shot_first'] = filtered_df['shot_first'].replace('Han', 1)
+
+notunderstandper = (filtered_df['shot_first'].isna().sum() / len(filtered_df) * 100).round()
+hansoloper = (filtered_df['shot_first'].sum() / len(filtered_df) * 100).round()
+greedoper = ((filtered_df['shot_first'] == 0).sum() / len(filtered_df) * 100).round()
+
+shot_percentages = {
+    "I don't understand this question": notunderstandper,
+    "Greedo": greedoper,
+    "Han": hansoloper
+}
+
+df_shot_percentages = pd.DataFrame(list(shot_percentages.items()), columns=['person', 'percent'])
+```
+
+```{python}
+(
+    ggplot(df_percentages, aes(x='movie', y='percent')) +
+    geom_bar(stat="identity") +
+    coord_flip() +
+    ggtitle("Which 'Star Wars' Movies Have you seen?", subtitle="Of 835 respondents who have seen the film") +
+    geom_text(aes(label='percent'), hjust="left", color='black', size=5.5) +
+    geom_text(x=5, y=84, label="%", hjust="left", color='black', size=5.5)
+)
+```
+
+```{python}
+(
+    ggplot(df_shot_percentages, aes(x='person', y='percent')) +
+    geom_bar(stat="identity") +
+    coord_flip() +
+    ggtitle("Who Shot First?", subtitle="According to 835 respondents") +
+    geom_text(aes(label='percent'), hjust="left", color='black', size=5.5) +
+    geom_text(x=2, y=41, label="%", hjust="left", color='black', size=5.5)
+)
+```
+
+## Question 4
+Clean and format the data so that it can be used in a machine learning model. As you format the data, you should complete each item listed below. In your final report provide an excerpt of the reformatted data with a short description of the changes made.
+
+## 4a
+Create a new column that converts the age ranges to a single number. Drop the age range categorical column
+
+```{python}
+filtered_df['age'] = filtered_df['age'].replace({
+    '18-29': 23.5,
+    '30-44': 37,
+    '45-60': 52.5,
+    '> 60': 80
+})
+
+filtered_df['missing_age'] = filtered_df['age'].isna().astype(int)
+
+filtered_df['age'] = filtered_df['age'].fillna(filtered_df['age'].median())
+```
+
+## 4b
+Create a new column that converts the education groupings to a single number. Drop the school categorical column
+
+```{python}
+filtered_df['education'] = filtered_df['education'].replace({
+    'Less than high school degree': 10,
+    'High school degree': 12,
+    'Some college or Associate degree': 14,
+    'Bachelor degree': 16,
+    'Graduate degree': 18
+})
+
+filtered_df['missing_education'] = filtered_df['education'].isna().astype(int)
+
+filtered_df['education'] = filtered_df['education'].fillna(filtered_df['education'].median())
+```
+
+## 4c
+Create a new column that converts the income ranges to a single number. Drop the income range categorical column
+
+```{python}
+filtered_df['income'] = filtered_df['income'].replace({
+    '$0 - $24,999': 12500,
+    '$25,000 - $49,999': 37500,
+    '$50,000 - $99,999': 75000,
+    '$100,000 - $149,999': 125000,
+    '$150,000+': 175000
+})
+
+filtered_df['missing_income'] = filtered_df['income'].isna().astype(int)
+
+filtered_df['income'] = filtered_df['income'].fillna(filtered_df['income'].median())
+```
+
+## 4d
+Create your target (also known as “y” or “label”) column to indicate whether a person had a Household Income $50,000 or greater
+
+```{python}
+filtered_df['y'] = filtered_df['income']
+filtered_df['y'] = filtered_df['y'].replace({
+    12500: 0,
+    37500: 0,
+    75000: 1,
+    125000: 1,
+    175000: 1
+}).astype(int)
+```
+
+## 4e
+Encode favorability ratings as a number. Remove the favorability categorical columns.
+
+```{python}
+character_cols = ['han_solo', 'luke_sky', 'prin_leia', 'ana_sky', 'obi_wan', 'emp_palp', 'darth_vad', 'lando_cal', 'boba_fett', 'c3po', 'r2d2', 'jarjar', 'padme', 'yoda']
+
+filtered_df[character_cols] = filtered_df[character_cols].replace({
+    'Very favorably': 2,
+    'Somewhat favorably': 1,
+    'Neither favorably nor unfavorably (neutral)': 0,
+    'Somewhat unfavorably': -1,
+    'Very unfavorably': -2,
+    'Unfamiliar (N/A)': np.nan
+})
+
+filtered_df['missing_character'] = filtered_df[character_cols].isna().any(axis=1).astype(int)
+
+filtered_df[character_cols] = filtered_df[character_cols].apply(lambda col: col.fillna(col.median()))
+```
+
+## 4f
+One-hot encode all remaining categorical columns
+
+```{python}
+cat_cols = ['gender', 'seen_any', 'starwars_fan?', 'starwars_fan?2', 'shot_first', 'famil_expan_uni?', 'expan_uni_fan?', 'location']
+
+final_df = pd.get_dummies(filtered_df, columns=cat_cols, dtype=int)
+```
+
+## Question 5a
+Prep the data for machine learning:
+    Create your target (also known as “y” or “label”) column based on the new income range column
+
+## Question 6
+Build a machine learning model that predicts whether a person makes at least $50k. Describe your model and report the accuracy.
+
+```{python}
+X = final_df.drop(columns=['y', 'income', 'respondent_id'])
+y = final_df['y']
+
+# train/test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=23)
+
+model = RandomForestClassifier(n_estimators=100, random_state=23)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+```
+
+## Results
+
+_I managed to get over 65% accuracy on the ML model, 72.4% to be exact. The classification model is also interesting as you can see below. The model was apparently very good at guessing if the person made over 50k, but very poor at predicting if they made below 50k. This can be seen specifically in the classification mode as well as the confusion matrix. The precision, recall and f1-score are all quite low for 0, while they are quite high for 1.These results were also displayed on the confusion matrix shown below._
+
+```{python}
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+```
+
+```{python}
+cm = confusion_matrix(y_test, y_pred)
+
+cm_df = pd.DataFrame(cm, columns=["Pred 0", "Pred 1"], index=["Actual 0", "Actual 1"])
+
+ggplot(cm_df.reset_index().melt(id_vars="index"),
+        aes("variable", "index", fill="value")) + \
+    geom_tile(color="white") + \
+    geom_text(aes(label="value"), size=12, color="black") + \
+    scale_fill_gradient(low="#F7FBFF", high="#08306B") + \
+    xlab("Predicted") + \
+    ylab("Actual") + \
+    ggtitle("Confusion Matrix")
+```
+
+_The features that were most important were interesting. As one might expect, the features that were most important were education, age and whether or not they entered in their income at all. Interestingly, the next most important feature in my model was whether or not the person liked Jar Jar Binks, a character from movie 1 and 2. However, while these top 4 were the most influential, it wasn't by a large margin. The most important feature was whether or not they entered income information, but that only had a .07 importance score._
+
+```{python}
+feature_importances = model.feature_importances_
+feature_names = list(X.columns)
+
+feat_imp_df = pd.DataFrame({
+    "feature": feature_names,
+    "importance": feature_importances
+}).sort_values("importance", ascending=False)
+
+# Choose top 10
+feat_imp_df_top = feat_imp_df.head(10).copy()
+
+feat_imp_df_top['feature'] = pd.Categorical(
+    feat_imp_df_top['feature'],
+    categories=feat_imp_df_top['feature'],
+    ordered=True
+)
+
+ggplot(feat_imp_df_top, aes(x='feature', y='importance')) + \
+    geom_bar(stat='identity') + \
+    coord_flip() + \
+    ggtitle("Top Feature Importances") + \
+    xlab("Feature") + \
+    ylab("Importance")
+```
+
+## Conclusion
+
+_The results implicate that the even unrelated data can be valuable when properly handled. This shows me that every little bit of data that corporations glean from me can be used for a variety of different things, mainly to get me to buy something. The most important feature were the basic personal demographics, but could similar results be made without them? This format has a couple of flaws that begin at the survey process. Many of the survey takers didn't finish the whole thing, which causes missing data. The data also needs to be properly cleaned before being used with an ML model, otherwise its accuracy will be skewed. A recommendation of future analysis could be to be more painstaking with the data cleaning. Any column that might have missing data will skew the results. Experimenting with using ordinal data to represent survey results could also be useful. Making the proportions more exact could change the results. In conclusion, the capabilities of this process are quite large. As machine learning and data manipulation are better understood, even seemingly useless data becomes valuable._
